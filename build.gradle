@@ -1,101 +1,108 @@
 apply plugin: 'java'
 apply plugin: 'maven'
+apply plugin: 'idea'
 
 group = 'org.springframework.batch'
 version = '1.0-SNAPSHOT'
 
 configurations.compile.transitive = true
 
-sourceCompatibility = 1.5
-targetCompatibility = 1.5
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
 
 repositories {
-  mavenRepo urls: ["http://repo.jfrog.org/artifactory/libs-releases"]
-  mavenRepo urls: ["http://repo.jfrog.org/artifactory/libs-snapshots"]
+    maven {
+        url "http://repo.jfrog.org/artifactory/libs-releases"
+    }
+    maven {
+        url "http://repo.jfrog.org/artifactory/libs-snapshots"
+    }
 }
 dependencies {
-  compile "org.slf4j:slf4j-api:1.5.11"
-  compile "ch.qos.logback:logback-classic:0.9.18"
-  compile "org.slf4j:log4j-over-slf4j:1.5.11"
-  compile "org.slf4j:jcl-over-slf4j:1.5.11"
-  compile "cglib:cglib:2.2"
-  compile "org.springframework:org.springframework.core:3.0.2.RELEASE"
-  compile "org.springframework:org.springframework.aop:3.0.2.RELEASE"
-  compile "org.springframework:org.springframework.context:3.0.2.RELEASE"
-  compile "org.springframework:org.springframework.transaction:3.0.2.RELEASE"
-  compile "org.aspectj:aspectjrt:1.6.8"
-  compile "org.aspectj:aspectjweaver:1.6.8"
-  compile "org.springframework:org.springframework.beans:3.0.2.RELEASE"
-  compile "org.springframework:org.springframework.asm:3.0.2.RELEASE"
-  compile "org.springframework:org.springframework.expression:3.0.2.RELEASE"
-  compile("org.springframework.batch:spring-batch-core:2.1.2.RELEASE") {
-    exclude(module: 'spring-tx')
-    exclude(module: 'spring-beans')
-    exclude(module: 'spring-context')
-    exclude(module: 'spring-aop')
-    exclude(module: 'spring-core')
-  }
-  compile("org.springframework.batch:spring-batch-infrastructure:2.1.2.RELEASE") {
-    exclude(module: 'spring-core')
-    exclude(module: 'commons-logging')
-  }
-  compile "org.mongodb:mongo-java-driver:2.3"
-  compile "commons-io:commons-io:1.4"
-  testCompile "junit:junit:4.8.1"
-  testCompile "org.springframework:org.springframework.test:3.0.2.RELEASE"
-  testCompile("org.springframework.batch:spring-batch-test:2.1.2.RELEASE") {
-    exclude(module: 'spring-test')
-    exclude(module: 'spring-jdbc')
-    exclude(module: 'commons-io')
-    exclude(module: 'commons-collections')
-  }
+    compile "org.slf4j:slf4j-api:1.5.11"
+    compile "ch.qos.logback:logback-classic:0.9.18"
+    compile "org.slf4j:log4j-over-slf4j:1.5.11"
+    compile "org.slf4j:jcl-over-slf4j:1.5.11"
+    compile "cglib:cglib:2.2"
+    compile "org.springframework:org.springframework.core:3.0.2.RELEASE"
+    compile "org.springframework:org.springframework.aop:3.0.2.RELEASE"
+    compile "org.springframework:org.springframework.context:3.0.2.RELEASE"
+    compile "org.springframework:org.springframework.transaction:3.0.2.RELEASE"
+    compile "org.aspectj:aspectjrt:1.6.8"
+    compile "org.aspectj:aspectjweaver:1.6.8"
+    compile "org.springframework:org.springframework.beans:3.0.2.RELEASE"
+    compile "org.springframework:org.springframework.asm:3.0.2.RELEASE"
+    compile "org.springframework:org.springframework.expression:3.0.2.RELEASE"
+    compile("org.springframework.batch:spring-batch-core:2.1.2.RELEASE") {
+        exclude(module: 'spring-tx')
+        exclude(module: 'spring-beans')
+        exclude(module: 'spring-context')
+        exclude(module: 'spring-aop')
+        exclude(module: 'spring-core')
+    }
+    compile("org.springframework.batch:spring-batch-infrastructure:2.1.2.RELEASE") {
+        exclude(module: 'spring-core')
+        exclude(module: 'commons-logging')
+    }
+    compile "org.mongodb:mongo-java-driver:2.3"
+    compile "commons-io:commons-io:1.4"
+    testCompile "junit:junit:4.8.1"
+    testCompile "org.springframework:org.springframework.test:3.0.2.RELEASE"
+    testCompile("org.springframework.batch:spring-batch-test:2.1.2.RELEASE") {
+        exclude(module: 'spring-test')
+        exclude(module: 'spring-jdbc')
+        exclude(module: 'commons-io')
+        exclude(module: 'commons-collections')
+    }
 }
 
 task replacePoms(dependsOn: install) << {
-  def pomsDir = new File(project.buildDir, "poms")
-  def defaultPomName = "pom-default.xml"
-  def defaultPom = new File(pomsDir, defaultPomName)
-  if (defaultPom.exists()) {
-    File pomFile = new File(project.projectDir, "pom.xml")
-    if (pomFile.exists()) {
-      pomFile.renameTo(new File(project.projectDir, "pom.xml.bak"))
+    def pomsDir = new File(project.buildDir, "poms")
+    def defaultPomName = "pom-default.xml"
+    def defaultPom = new File(pomsDir, defaultPomName)
+    if (defaultPom.exists()) {
+        File pomFile = new File(project.projectDir, "pom.xml")
+        if (pomFile.exists()) {
+            pomFile.renameTo(new File(project.projectDir, "pom.xml.bak"))
+        }
+        project.copy {
+            from(pomsDir) {
+                include defaultPomName
+                rename defaultPomName, 'pom.xml'
+            }
+            into(project.projectDir)
+        }
     }
-    project.copy {
-      from(pomsDir) {
-        include defaultPomName
-        rename defaultPomName, 'pom.xml'
-      }
-      into(project.projectDir)
-    }
-  }
 }
 
 test.doFirst {
-  if (project.hasProperty('startMongo') && project.startMongo) {
-    def windows = ((String) System.properties['os.name']).toLowerCase().contains("win")
-    File executable
-    project.mongoExecFound = false
-    if (project.hasProperty('mongoHome')) {
-      executable = new File(project.mongoHome + "/bin/" + "mongod" + (windows ? ".exe" : ""))
-      project.mongoExecFound = executable.isFile();
+    if (project.hasProperty('startMongo') && project.startMongo) {
+        def windows = ((String) System.properties['os.name']).toLowerCase().contains("win")
+        File executable
+        project.ext.mongoExecFound = false
+        if (project.hasProperty('mongoHome')) {
+            executable = new File(project.mongoHome + "/bin/" + "mongod" + (windows ? ".exe" : ""))
+            project.ext.mongoExecFound = executable.isFile();
+        }
+        if (!project.ext.mongoExecFound && !windows) {
+            executable = new File('/usr/bin/mongod');
+            project.ext.mongoExecFound = executable.isFile();
+        }
+        if (project.ext.mongoExecFound) {
+            def proc = ( "${executable.getAbsolutePath()} --dbpath ${buildDir} --fork --logpath ${buildDir}/mongo.log" ).execute()
+            proc.in.eachLine {line -> println line}
+            proc.err.eachLine {line -> println 'ERROR: ' + line}
+        }
     }
-    if (!project.mongoExecFound && !windows) {
-      executable = new File('/usr/bin/mongod');
-      project.mongoExecFound = executable.isFile();
-    }
-    if (project.mongoExecFound) {
-      logger.info("Going to startup MongoDB daemon: ${executable} ...")
-      ant.exec(spawn: true, executable: executable.getAbsolutePath())
-    }
-  }
 }
 
 test.doLast {
-  if (project.mongoExecFound) {
-    logger.info('taking MongoDB down...')
-    //Shutdown the db. Can't just call the class since script's classpath can't use project classes
-    ant.java(classname: 'org.springframework.batch.mongo.util.Shutdown',
-            fork: true,
-            classpath: "${sourceSets.test.runtimeClasspath.asPath}")
-  }
+
+    if (project.ext.mongoExecFound) {
+        logger.info('taking MongoDB down...')
+        //Shutdown the db. Can't just call the class since script's classpath can't use project classes
+        ant.java(classname: 'org.springframework.batch.mongo.util.Shutdown',
+                fork: true,
+                classpath: "${sourceSets.test.runtimeClasspath.asPath}")
+    }
 }
