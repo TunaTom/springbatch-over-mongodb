@@ -152,7 +152,7 @@ public class MongoJobExecutionDao extends AbstractMongoDao implements JobExecuti
         DBCursor dbCursor = getCollection().find(BasicDBObjectBuilder.start()
                 .add(JOB_INSTANCE_ID_KEY, new BasicDBObject("$in", ids.toArray()))
                 .add(END_TIME_KEY, null).get()).sort(jobExecutionIdObj(-1L));
-        Set<JobExecution> result = new HashSet<JobExecution>();
+        Set<JobExecution> result = new HashSet<>();
         while (dbCursor.hasNext()) {
             result.add(mapJobExecution(dbCursor.next()));
         }

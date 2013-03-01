@@ -54,7 +54,7 @@ public class MongoJobInstanceDao extends AbstractMongoDao implements JobInstance
         jobInstance.incrementVersion();
 
         Map<String, JobParameter> jobParams = jobParameters.getParameters();
-        Map<String, Object> paramMap = new HashMap<String, Object>(jobParams.size());
+        Map<String, Object> paramMap = new HashMap<>(jobParams.size());
         for (Map.Entry<String, JobParameter> entry : jobParams.entrySet()) {
             paramMap.put(entry.getKey().replaceAll(DOT_STRING, DOT_ESCAPE_STRING), entry.getValue().getValue());
         }
@@ -100,30 +100,35 @@ public class MongoJobInstanceDao extends AbstractMongoDao implements JobInstance
     }
 
     protected String createJobKey(JobParameters jobParameters) {
-
         Map<String, JobParameter> props = jobParameters.getParameters();
         StringBuilder stringBuilder = new StringBuilder();
-        List<String> keys = new ArrayList<String>(props.keySet());
+        List<String> keys = new ArrayList<>(props.keySet());
         Collections.sort(keys);
         for (String key : keys) {
             stringBuilder.append(key).append("=").append(props.get(key).toString()).append(";");
         }
 
-        MessageDigest digest;
-        try {
-            digest = MessageDigest.getInstance("MD5");
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(
-                    "MD5 algorithm not available.  Fatal (should be in the JDK).");
-        }
+        return digest(stringBuilder.toString());
+    }
+
+    private String digest(String input) {
+        MessageDigest md5Digest = getMd5Digest();
 
         try {
-            byte[] bytes = digest.digest(stringBuilder.toString().getBytes(
-                    "UTF-8"));
+            byte[] bytes = md5Digest.digest(input.getBytes("UTF-8"));
             return String.format("%032x", new BigInteger(1, bytes));
         } catch (UnsupportedEncodingException e) {
             throw new IllegalStateException(
                     "UTF-8 encoding not available.  Fatal (should be in the JDK).");
+        }
+    }
+
+    private MessageDigest getMd5Digest() {
+        try {
+            return MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(
+                    "MD5 algorithm not available.  Fatal (should be in the JDK).");
         }
     }
 
@@ -161,7 +166,7 @@ public class MongoJobInstanceDao extends AbstractMongoDao implements JobInstance
     private JobParameters getJobParameters(Long jobInstanceId) {
         final Map<String, ?> jobParamsMap = (Map<String, Object>) getCollection().findOne(new BasicDBObject(jobInstanceIdObj(jobInstanceId))).get(JOB_PARAMETERS_KEY);
 
-        Map<String, JobParameter> map = new HashMap<String, JobParameter>(jobParamsMap.size());
+        Map<String, JobParameter> map = new HashMap<>(jobParamsMap.size());
         for (Map.Entry<String, ?> entry : jobParamsMap.entrySet()) {
             Object param = entry.getValue();
             String key = entry.getKey().replaceAll(DOT_ESCAPE_STRING, DOT_STRING);

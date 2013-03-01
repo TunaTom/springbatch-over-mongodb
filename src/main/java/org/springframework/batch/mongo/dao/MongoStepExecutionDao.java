@@ -87,9 +87,7 @@ public class MongoStepExecutionDao extends AbstractMongoDao implements StepExecu
         // Attempt to prevent concurrent modification errors by blocking here if
         // someone is already trying to do it.
         Integer currentVersion = stepExecution.getVersion();
-        Integer newVersion = currentVersion + 1;
-        DBObject object = toDbObjectWithoutVersion(stepExecution);
-        object.put(VERSION_KEY, newVersion);
+        DBObject object = toObjectWithNewVersion(stepExecution, currentVersion);
         getCollection().update(start()
                 .add(STEP_EXECUTION_ID_KEY, stepExecution.getId())
                 .add(VERSION_KEY, currentVersion).get(),
@@ -112,19 +110,25 @@ public class MongoStepExecutionDao extends AbstractMongoDao implements StepExecu
         stepExecution.incrementVersion();
     }
 
+    private DBObject toObjectWithNewVersion(StepExecution stepExecution, Integer currentVersion) {
+        Integer newVersion = currentVersion + 1;
+        DBObject object = toDbObjectWithoutVersion(stepExecution);
+        object.put(VERSION_KEY, newVersion);
+        return object;
+    }
+
 
     static BasicDBObject stepExecutionIdObj(Long id) {
         return new BasicDBObject(STEP_EXECUTION_ID_KEY, id);
     }
 
-
     public StepExecution getStepExecution(JobExecution jobExecution, Long stepExecutionId) {
-        return mapStepExecution(getCollection().findOne(BasicDBObjectBuilder.start()
+        return mapStepExecutionToJob(getCollection().findOne(BasicDBObjectBuilder.start()
                 .add(STEP_EXECUTION_ID_KEY, stepExecutionId)
                 .add(JOB_EXECUTION_ID_KEY, jobExecution.getId()).get()), jobExecution);
     }
 
-    private StepExecution mapStepExecution(DBObject object, JobExecution jobExecution) {
+    private StepExecution mapStepExecutionToJob(DBObject object, JobExecution jobExecution) {
         if (object == null) {
             return null;
         }
@@ -152,7 +156,7 @@ public class MongoStepExecutionDao extends AbstractMongoDao implements StepExecu
         while (stepsCoursor.hasNext()) {
             DBObject stepObject = stepsCoursor.next();
             //Calls constructor of StepExecution, which adds the step; Wow, that's unclear code!
-            mapStepExecution(stepObject, jobExecution);
+            mapStepExecutionToJob(stepObject, jobExecution);
         }
     }
 

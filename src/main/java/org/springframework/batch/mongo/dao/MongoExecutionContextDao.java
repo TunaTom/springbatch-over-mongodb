@@ -19,6 +19,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Map;
 
+import static com.mongodb.BasicDBObjectBuilder.start;
+
 /**
  * Created by IntelliJ IDEA.
  *
@@ -34,7 +36,9 @@ public class MongoExecutionContextDao extends AbstractMongoDao implements Execut
 
     @PostConstruct
     public void init() {
-        getCollection().ensureIndex(BasicDBObjectBuilder.start().add(STEP_EXECUTION_ID_KEY, 1).add(JOB_EXECUTION_ID_KEY, 1).get());
+        getCollection().ensureIndex(start()
+                .add(STEP_EXECUTION_ID_KEY, 1)
+                .add(JOB_EXECUTION_ID_KEY, 1).get());
     }
 
     public ExecutionContext getExecutionContext(JobExecution jobExecution) {
@@ -82,6 +86,7 @@ public class MongoExecutionContextDao extends AbstractMongoDao implements Execut
         Assert.notNull(executionId, "ExecutionId must not be null.");
         DBObject result = getCollection().findOne(new BasicDBObject(executionIdKey, executionId));
         ExecutionContext executionContext = new ExecutionContext();
+
         if (result != null) {
             result.removeField(executionIdKey);
             removeSystemFields(result);
@@ -98,6 +103,7 @@ public class MongoExecutionContextDao extends AbstractMongoDao implements Execut
                 executionContext.put(key, value);
             }
         }
+
         return executionContext;
     }
 
